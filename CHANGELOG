@@ -1,5 +1,10 @@
 # CHANGELOG
 
-# [0.0.1] 2019-06-26
+## [0.0.2] 2019-06-28
+
+- The status of every alert is read separately.
+- It is possible to set the visibility of the given incident
+
+## [0.0.1] 2019-06-26
 
 - First Release

@@ -89,6 +89,7 @@ type cachetHqIncident struct {
 	Status          int    `json:"status"`
 	ComponentID     int    `json:"component_id"`
 	ComponentStatus int    `json:"component_status"`
+	Visible         int    `json:"visible"`
 }
 
 // cachetList will fetch the different CachetHQ components (id/name) via a GET /api/v1/components
@@ -142,7 +143,7 @@ func cachetList(apiURL, apiKEY string, client *http.Client) (map[string]int, err
 // component status: component status: https://docs.cachethq.io/docs/component-statuses
 // - status = 1 for alert resolved
 // - status = 4 for alert fatal
-func cachetAlert(componentName string, componentID, componentStatus int, apiURL, apiKEY string, client *http.Client) error {
+func cachetAlert(cachetVisibility bool, componentName string, componentID, componentStatus int, apiURL, apiKEY string, client *http.Client) error {
 	incidentName := fmt.Sprintf("%s down", componentName)
 	incidentMessage := fmt.Sprintf("Prometheus flagged service %s as down", componentName)
 	incidentStatus := 2 // "Identified"
@@ -154,12 +155,19 @@ func cachetAlert(componentName string, componentID, componentStatus int, apiURL,
 		incidentStatus = 4 // "Fixed"
 	}
 
+	visible := 0
+
+	if cachetVisibility {
+		visible = 1
+	}
+
 	incident := &cachetHqIncident{
 		Name:            incidentName,
 		Message:         incidentMessage,
 		Status:          incidentStatus,
 		ComponentID:     componentID,
 		ComponentStatus: componentStatus,
+		Visible:         visible,
 	}
 
 	// by precaution, remove the '/' at the end of apiURL
@@ -217,6 +225,7 @@ type PrometheusAlertDetail struct {
 	Annotations map[string]string `json:"annotations"`
 	StartAt     string            `json:"startsAt"`
 	EndsAt      string            `json:"endsAt"`
+	Status      string            `json:"status"`
 }
 
 type PrometheusAlert struct {
@@ -249,10 +258,6 @@ func SubmitAlert(c *gin.Context, config *PrometheusCachetConfig) {
 	var alerts PrometheusAlert
 	if err := c.ShouldBindJSON(&alerts); err == nil {
 		// talk to CachetHQ
-		status := 1 // "resolved"
-		if alerts.Status == "firing" {
-			status = 4
-		}
 
 		list, err := cachetList(config.CachetURL, config.CachetToken, config.HttpClient)
 		if err != nil {
@@ -270,7 +275,11 @@ func SubmitAlert(c *gin.Context, config *PrometheusCachetConfig) {
 			if componentID, ok := list[alert.Labels[config.LabelName]]; ok {
 				if alreadyFired[componentID] == 0 {
 					alreadyFired[componentID] = 1
-					if err := cachetAlert(alert.Labels[config.LabelName], componentID, status, config.CachetURL, config.CachetToken, config.HttpClient); err != nil {
+					status := 1 // "resolved"
+					if alert.Status == "firing" {
+						status = 4
+					}
+					if err := cachetAlert(config.CachetIncidentVisibility, alert.Labels[config.LabelName], componentID, status, config.CachetURL, config.CachetToken, config.HttpClient); err != nil {
 						if config.LogLevel == LOG_DEBUG {
 							log.Println(err)
 						}

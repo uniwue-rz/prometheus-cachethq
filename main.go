@@ -25,6 +25,7 @@ type PrometheusCachetConfig struct {
 	LabelName       string
 	LogLevel        int
 	HttpClient      *http.Client
+	CachetIncidentVisibility bool
 }
 
 func main() {
@@ -45,6 +46,7 @@ func main() {
 	flag.StringVar(&sslKey, "ssl_key_file", "", "to be used with ssl_cert: enable https server")
 	flag.StringVar(&config.LabelName, "label_name", "alertname", "label to look for in Prometheus Alert info")
 	flag.IntVar(&httpPort, "http_port", 8080, "port to listen on")
+	flag.BoolVar(&config.CachetIncidentVisibility, "visible", false, "cachet Incident Visibility")
 
 	flag.Parse()
 
