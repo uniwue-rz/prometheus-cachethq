@@ -146,13 +146,12 @@ func cachetList(apiURL, apiKEY string, client *http.Client) (map[string]int, err
 func cachetAlert(cachetVisibility bool, componentName string, componentID, componentStatus int, apiURL, apiKEY string, client *http.Client) error {
 	incidentName := fmt.Sprintf("%s down", componentName)
 	incidentMessage := fmt.Sprintf("Prometheus flagged service %s as down", componentName)
-	incidentStatus := 2 // "Identified"
+	incidentStatus := 4 // "Identified"
 
 	// if we are in status = 1 (alert resolved)
 	if componentStatus == 1 {
 		incidentName = fmt.Sprintf("%s up", componentName)
 		incidentMessage = fmt.Sprintf("Prometheus flagged service %s as recovered", componentName)
-		incidentStatus = 4 // "Fixed"
 	}
 
 	visible := 0
